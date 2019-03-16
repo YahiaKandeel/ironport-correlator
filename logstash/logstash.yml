@@ -1,0 +1,36 @@
+input {
+  udp {
+    port => 514
+    type => syslog
+  }
+  tcp {
+    port => 514
+    type => syslog
+  }
+}
+
+# filter {
+#   mutate{
+#     add_field => [ "received_from", "%{host}" ]
+#   }
+# }
+
+
+output {
+    if [host] == "172.30.75.10" or [host] == "172.30.75.11"  {
+      stdout { codec => rubydebug }
+
+      file {
+        path => "/var/log/ironport"
+        }
+      redis {
+        key => "ironport"
+        data_type => "list"
+      }
+  }
+  else {
+        file {
+          path => "/var/log/logother"
+          }
+  }
+}
