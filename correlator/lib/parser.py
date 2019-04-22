@@ -5,6 +5,7 @@ import re
 import json
 import redis
 import time
+from decoder import decode
 from collections import OrderedDict
 
 
@@ -25,6 +26,8 @@ regex = OrderedDict([
         re.compile("MID (\d+) (enqueued|Dropped|queued for delivery)(?: (?:by|for transfer to) (centralized quarantine|content filter) [\"\'](.*)[\"\']|)")),
     (('MID', 'Response'),
         re.compile("MID (\d+) RID .* Response '(.*?): queued as .*'")),
+    (('MID', 'IP'),
+        re.compile("MID (\d+) to RID [\d+] [\('received', 'from \S+ \([(\d+\.\d+\.\d+\.\d+)]\)")),
 
     # Engines
     (('MID', 'OutbreakFilters'),
