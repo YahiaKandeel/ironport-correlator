@@ -5,6 +5,7 @@ from logging.handlers import SysLogHandler
 import logging
 import json
 import time
+from decoder import decode
 import collections
 
 
@@ -37,11 +38,15 @@ def style(message):
             'SPF' ,'DKIM', 'DKIM_Detail', 'DMARK', 'DMARK_Detail',
             "Subject", "Attachments", "From", "To",
             "SenderReputation", "ThreatCategory", "SuspectedDomains", "DomainAge",
-            'Action', 'Action_Desc', 'Action_Filter',
+            'Action', 'Action_Desc', 'Action_Filter', "IP"
             "Other"]
 
     for key in keys:
         message_log[key] = ' || '.join(list(set(message.get(key, []))))
+
+    # Decode Subject
+    message_log["Subject"] = decode(message_log["Subject"])
+    message_log["Attachments"] = decode(message_log["Attachments"])
 
     for recipient in recipients:
         message_log['To'] = recipient
