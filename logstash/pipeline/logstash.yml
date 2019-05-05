@@ -1,0 +1,22 @@
+input {
+  udp {
+    port => 514
+    type => syslog
+  }
+  tcp {
+    port => 514
+    type => syslog
+  }
+}
+
+output {
+  # stdout { codec => rubydebug }
+
+  file {
+    path => "/var/log/ironport"
+    }
+  redis {
+    key => "ironport"
+    data_type => "list"
+  }
+}
