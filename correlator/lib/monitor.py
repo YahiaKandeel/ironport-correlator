@@ -23,7 +23,8 @@ def get_timeout_rmids():
     keys = pipe.keys("*:*")
     # get mid, old epoch
     for key in keys:
-        mid, epoch = key.split(":")
+        # print (key)
+        mid, epoch = key.decode().split(":")
         # check
         if now - int(epoch) > timeout:
             result.append(key)
@@ -41,7 +42,7 @@ def lpop(rmid):
         key, value = json.loads(data)
         result[key].append(value)
     # delete
-    print "Deleting", rmid
+    print ("Deleting", rmid)
     pipe.delete(rmid)
     # return
     return result
@@ -49,7 +50,7 @@ def lpop(rmid):
 
 # Monitor Process
 def monitor(logger_queue):
-    print "\t[+]Starting Monitor Process"
+    print ("\t[+]Starting Monitor Process")
 
     while True:
         # Get Time out MIDs
@@ -59,7 +60,8 @@ def monitor(logger_queue):
         for rmid in rmids:
             data = lpop(rmid)
             # MID
-            mid, epoch = rmid.split(":")
+            mid, epoch = rmid.decode().split(":")
+            # print(data)
             data['MID'] = [mid]
             # Log
             logger_queue.put({rmid: data})
