@@ -20,7 +20,7 @@ When IronPort is configured to send it's Syslog messages to a centralized log co
 ..........
 
 This tool is used a hub between IronPort and a SIEM solution to correlate between the different Engines, Filters per Email.
-```json
+```
 {'Action': 'notify-copy || queued for delivery',
  'Action_Desc': '',
  'Antivirus': 'CLEAN',
@@ -96,7 +96,7 @@ gpgkey=http://packages.elasticsearch.org/GPG-KEY-elasticsearch
 enabled=1''' > /etc/yum.repos.d/logstash.repo
 ```
 
-Then proceed with the installation 
+Then proceed with the installation
 ```bash
 # Install required packages
 sudo yum install -y epel-release
