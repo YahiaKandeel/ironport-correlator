@@ -5,7 +5,6 @@ import re
 import json
 import redis
 import time
-from decoder import decode
 from collections import OrderedDict
 
 
@@ -18,17 +17,30 @@ regex = OrderedDict([
     # Flow
     (('MID', 'ICID'),
         re.compile("Info: Start MID (\d+) ICID (\d+)$")),
-    (('MID', 'NewMID', 'Rewrite_By'),
-        re.compile("MID (\d+) rewritten to MID (\d+) by (.*)")),
-    (('MID', 'OldMID', 'Generated_By', 'Generated_By_Filter'),
-        re.compile("MID (\d+) was generated based on MID (\d+) by (.*) filter [\"\'](.*)[\"\']")),
-    (('MID', 'Action', 'Action_Desc', 'Action_Filter'),
-        re.compile("MID (\d+) (enqueued|Dropped|queued for delivery)(?: (?:by|for transfer to) (centralized quarantine|content filter) [\"\'](.*)[\"\']|)")),
-    (('MID', 'Response'),
-        re.compile("MID (\d+) RID .* Response '(.*?): queued as .*'")),
     (('MID', 'IP'),
-        re.compile("MID (\d+) to RID [\d+] [\('received', 'from \S+ \([(\d+\.\d+\.\d+\.\d+)]\)")),
+        re.compile("MID (\d+) to RID .*? \[\('received', 'from .*? \(\[(\d+\.\d+\.\d+\.\d+)\]\)")),
+    # queued for delivery
+    (('MID', 'Action'),
+        re.compile("MID (\d+) (queued for delivery)")),
 
+    #** Filters **
+    (('MID', 'Action', 'Action_Desc', 'Content_Filter'),
+        re.compile("MID (\d+) enqueued for transfer to centralized (quarantine) [\"\\\']*(.*?)[\"\\\']* \((.*)\)")),
+    # Dropped
+    (('MID', 'Action', 'Content_Filter'),
+        re.compile("MID (\d+) (Dropped) by content filter [\"\'](.*)[\"\'] in the inbound table")),
+    # Notify
+    (('Related_MID', 'MID', 'Action', 'Content_Filter'),
+        re.compile("MID (\d+) was generated based on MID (\d+) by (.*) filter [\"\'](.*)[\"\']")),
+    # rewritten
+    (('MID', 'Action', 'Related_MID', 'Action_Desc'),
+        re.compile("MID (\d+) (rewritten) to MID (\d+) by ([\-\w]+)")),
+    # release
+    (('MID', 'Related_MID', 'Action_Desc', 'Action'),
+        re.compile("MID (\d+) received from the SMA \S+ \(MID originally (\d+)\) on ((release) from .*)")),
+
+
+    #** Filters **
     # Engines
     (('MID', 'OutbreakFilters'),
         re.compile("MID (\d+) Outbreak Filters: verdict (\w+)")),
@@ -38,8 +50,8 @@ regex = OrderedDict([
         re.compile("MID (\d+) using engine: GRAYMAIL (.*)")),
     (('MID', 'Antivirus'),
         re.compile("MID (\d+).*interim AV verdict using \w+ (.*)")),
-    (('MID', "LDAP_Drop"),
-        re.compile("LDAP: Drop query .* MID (\d+) RID \d* address (.*)")),
+    (("Action", 'MID', "LDAP_Drop"),
+        re.compile("(LDAP: Drop) query .* MID (\d+) RID \d* address (.*)")),
 
     # DMARK
     (('MID', 'DMARK'), re.compile("MID (\d+) DMARC: Verification (\w+)")),
@@ -53,14 +65,15 @@ regex = OrderedDict([
     (('MID', 'Subject'), re.compile("MID (\d+) Subject [\'\"](.*)[\'\"]")),
     (('MID', 'MessageID'), re.compile("MID (\d+) Message-ID [\'\"](.*)[\'\"]")),
     (('MID', 'To'), re.compile("MID (\d+) ICID \d+ RID \d+ To: \<(.*)\>")),
-    # (('MID', 'from'), re.compile("MID (\d+) ready \d+ bytes from (.*)")),
     (('MID', 'From'), re.compile("MID (\d+) ICID \d+ From: \<(.*)\>")),
 
 
-    # INFO
+    # SDR
     # 'DomainKey': re.compile("DomainKeys: (.*)")),
     (('MID', "SenderReputation", "ThreatCategory", "SuspectedDomains", "DomainAge"),
     re.compile("MID (\d+) SDR: Consolidated Sender Reputation: (\w+), Threat Category: (N\/A|.*?)[\.\,] (?:Suspected Domain\(s\) : (.*)\. )?Youngest Domain Age: (.*)")),
+
+    # Other
     (('MID', 'Other'), re.compile("MID (\d+) (.*)")),
     ])
 
@@ -102,7 +115,7 @@ def parser():
         2- Extract MID, and the values and match it with the regex keys
         3- Push the MID:EPOCH = {'key1':[match1, match2], 'key2':[match3]} to redis
     '''
-    print "\t[+]Starting Parser Process"
+    print ("\t[+]Starting Parser Process")
 
     while True:
         # Get log from redis
