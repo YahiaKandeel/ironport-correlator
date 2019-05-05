@@ -5,12 +5,14 @@
 from multiprocessing import Manager, Process, Queue, Value
 from lib import logger, parser, monitor
 import sys
-import os.path
+import os
 import time
 
 
-# Vars,
-log_server = "10.100.251.75"
+# Vars
+log_server = os.getenv("SYSLOG", None)
+log_file = '/var/log/ninja/ironport.log'
+print("Sending Logs to", log_server)
 
 # Sys path
 sys.path.append(os.path.realpath(__file__))
