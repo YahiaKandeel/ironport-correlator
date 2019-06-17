@@ -30,8 +30,7 @@ This tool is used a hub between IronPort and a SIEM solution to correlate betwee
  'DKIM': 'pass',
  'DKIM_Detail': 'pass signature verified (d=gmail.com s=20161025 i=@gmail.com)',
  'DMARK': 'passed',
- 'DMARK_Detail': 'Message from domain gmail.com, DMARC pass (SPF aligned True, '
-                 'DKIM aligned False)',
+ 'DMARK_Detail': 'Message from domain gmail.com, DMARC pass (SPF aligned True DKIM aligned False)',
  'DomainAge': '21 years 11 months 7 days for domain: mail-wr1-f50.google.com',
  'From': 'xxxxx@gmail.com',
  'GRAYMAIL': 'negative',
@@ -54,16 +53,15 @@ This tool is used a hub between IronPort and a SIEM solution to correlate betwee
 
 ## Components
 * Logstash
-Logstash will listen for any incoming syslog message from IronPort, then send it to the Redis Queue.
+Logstash will listen for any incoming syslog message from IronPort, parse logs, then send it to the Redis Queue.
 
 * Redis Server
-Redis, contains all IronPort messages as well as the parsed messaged by the Python Application
+Redis, contains all parsed IronPort messages as well as the parsed messaged by the Python Application.
 
 * Python Application (Correlator)
 Correlator is a multiprocessing Python3 App, that contains three processes:
-1. Parser
-   - reads all incoming syslog messages,
-   - parse them using the predefind parses
+1. Correlator
+   - correlate all messages and send them
    - send them back to redis with EPOCH
 
 2. Monitor
@@ -82,69 +80,58 @@ For the bare-metal, I'm going to use CentOS7 as my base OS.
 
 ### Using CentOS7
 * Install JAVA SDK (For Logstash)
-You have to have a running version of JAVA SDK before you proceed, you can find it here: https://www.oracle.com/technetwork/java/javase/downloads/,
-
-* Packages Installation
-You need to configure logstash repo by executing the below command.
-
 ```bash
-sudo echo '''[logstash-2.2]
-name=logstash repository for 2.2 packages
-baseurl=http://packages.elasticsearch.org/logstash/2.2/centos
-gpgcheck=1
-gpgkey=http://packages.elasticsearch.org/GPG-KEY-elasticsearch
-enabled=1''' > /etc/yum.repos.d/logstash.repo
+sudo yum -y install http://rpms.remirepo.net/enterprise/remi-release-7.rpm
+sudo yum install -y wget vim firewalld net-tools gcc make openssl-devel
 ```
 
-Then proceed with the installation
+* Logstash Installation and Configuration
+The existing pipeline will instruct to listen on ports 514/udp/tcp, parse then dump the log messages to redis.
 ```bash
-# Install required packages
-sudo yum install -y epel-release
-sudo yum install -y python36-pip redis logstash
-sudo pip3.6 install redis
-```
-
-* Logstash Configuration
-you need to create your pipeline to instruct logstash what to do exactly
-logstash will be configured to listen on ports 514/udp/tcp and dump the log messages to redis. This can be done using the below command:
-```bash
-sudo echo '''
-input {
-  udp {
-    port => 514
-    type => syslog
-  }
-  tcp {
-    port => 514
-    type => syslog
-  }
-}
-output {
-  redis {
-    key => "ironport"
-    data_type => "list"
-  }
-}
-''' > /etc/logstash/conf.d/ironport.conf
-```
-
-
-* Start the services
-Start the logstash & redis services
-```bash
-sudo systemctl enable redis --now
+sudo rpm -ivh https://artifacts.elastic.co/downloads/logstash/logstash-7.1.0.rpm
+sudo cp ./logstash.conf /etc/logstash/conf.d/ironport.conf
 sudo systemctl enable logstash --now
 ```
 
+* Redis Installation and Configuration
+```bash
+sudo yum install -y redis
+# Start the services
+sudo systemctl enable redis --now
+```
+
+* Python3 Installation
+```bash
+sudo yum -y install python36 python36-devel
+sudo yum -y install python36-pip
+sudo pip3 install ipython redis
+```
+
 * Running the app
-basically what do is to configure which Syslog server you wanna forward your logs to, then you can start your application
+Basically, the app what do is to configure which Syslog server you wanna forward your logs to, then you can start your application
 ``` bash
 export SYSLOG=<PlaceWithYourSyslogIP>
-python3 ./correlator/main.py
+python3 ./main.py
 ```
 
 * Finally IronPort configuration
 Lastly, we need to configure Ironport to send its logs to the newly created machine ;)
 
+* Note:
+you can automate the installation and configuration by using the install.sh script
+```bash
+sudo ./install.sh
+```
+
+### Using Vagrant
+Currently, Vagrantfile using virtual-box as the default provider, what you need to do is to configure the SYSLOG environment variable, then execute the application
+``` bash
+export SYSLOG=<PlaceWithYourSyslogIP>
+python3 ./main.py
+```
+
 ### Using Dockers
-<Coming Soon>
+Under development!
+```bash
+docker-compose up
+```
