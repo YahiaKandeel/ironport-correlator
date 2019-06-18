@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 ################################################################################
-# Install Script!
+# Logstash, Redis, Python3 Installation Bash Script on CentOS7
 ################################################################################
 # Bootstrap
 yum -y install http://rpms.remirepo.net/enterprise/remi-release-7.rpm
@@ -14,7 +14,7 @@ yum install -y java-1.8.0-openjdk
 rpm -ivh https://artifacts.elastic.co/downloads/logstash/logstash-7.1.0.rpm
 # copy config file
 # cp /vagrant/logstash.conf /etc/logstash/conf.d/ironport.conf
-# cp ./logstash.conf /etc/logstash/conf.d/ironport.conf
+cp ./logstash.conf /etc/logstash/conf.d/ironport.conf
 # Start the services
 systemctl enable logstash --now
 
@@ -27,6 +27,16 @@ systemctl enable redis --now
 yum -y install python36 python36-devel
 yum -y install python36-pip
 pip3 install ipython redis
+
+
+# Configure logrotate
+echo '''/var/log/ironport* {
+    daily
+    rotate 10
+    copytruncate
+    missingok
+}
+''' > /etc/logrotate.d/ironport
 
 # Firewall Configurations
 firewall-cmd --add-port=514/tcp --permanent
