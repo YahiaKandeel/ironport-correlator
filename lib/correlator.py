@@ -43,11 +43,10 @@ def correlator(redis_key):
         # Extract mid, type
         log = json.loads(rawlog)
         mid = log.get('MID')
-        type = log.get('type')
 
-        if type:
-            rmid = mid_with_epoch(mid)
-            del log['MID']
+        # get rmid
+        rmid = mid_with_epoch(mid)
+        del log['MID']
 
-            for key, value in log.items():
-                pipe.rpush(rmid, json.dumps([key, value]))
+        for key, value in log.items():
+            pipe.rpush(rmid, json.dumps([key, value]))
