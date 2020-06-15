@@ -12,9 +12,12 @@ systemctl enable firewalld --now
 # Logstash
 yum install -y java-1.8.0-openjdk
 rpm -ivh https://artifacts.elastic.co/downloads/logstash/logstash-7.1.0.rpm
-# copy config file
-# cp /vagrant/logstash.conf /etc/logstash/conf.d/ironport.conf
-cp ./logstash.conf /etc/logstash/conf.d/ironport.conf
+# copy logstash config file
+if [ -e /vagrant/logstash.conf ]; then 
+	cp /vagrant/logstash.conf /etc/logstash/conf.d/ironport.conf
+else
+	cp ./logstash.conf /etc/logstash/conf.d/ironport.conf
+fi
 # Start the services
 systemctl enable logstash --now
 
@@ -28,9 +31,9 @@ yum -y install python36 python36-devel
 yum -y install python36-pip
 pip3 install ipython redis
 
-
 # Configure logrotate
-echo '''/var/log/ironport* {
+mkdir /var/log/ironport/
+echo '''/var/log/ironport/*log {
     daily
     rotate 10
     copytruncate
