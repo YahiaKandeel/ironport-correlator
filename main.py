@@ -8,35 +8,51 @@ import sys
 import os
 import time
 
-# Vars
-syslog = os.getenv("SYSLOG", '127.0.0.1')
-port = 514
-redis_key = 'ironport'
-ident = 'IronPort'
-msgexpand = True
-timeout = 30
+########################
+# Environment Vars
+########################
+# Syslog
+syslogServer = str(os.getenv("ENV_SYSLOG_SERVER"))
+syslogPort = int(str(os.getenv("ENV_SYSLOG_PORT")))
+syslogIdent = str(os.getenv("ENV_SYSLOG_IDENT"))
+# Redis
+redisKey = str(os.getenv("ENV_REDIS_KEY"))
+# Logger Style
+timeout = int(str(os.getenv("ENV_TIMEOUT")))
+msgexpand = True if os.getenv("ENV_MSG_EXPAND") == "True" else False
+# LogLevel
+logLevel = os.getenv("ENV_LOGLEVEL")
 
+########################
 # Sys path
+########################
 sys.path.append(os.path.realpath(__file__))
 os.environ["PYTHONIOENCODING"] = 'utf-8'
 
+########################
 # Shared Objects
+########################
 manager = Manager()
-logger_queue = Queue()
+loggerQueue = Queue()
 
+########################
+# Main Process
+########################
 # Start Query Process
-correlate_process = Process(target=correlator, args=(redis_key, ))
+correlate_process = Process(target=correlator, args=(redisKey, ))
 correlate_process.daemon = True
 correlate_process.start()
 
 # Start Monitor Process
-monitor_process = Process(target=monitor, args=(logger_queue, timeout))
+monitor_process = Process(target=monitor, args=(loggerQueue, timeout))
 monitor_process.daemon = True
 monitor_process.start()
 
 # Start Loggger Process
-logger_process = Process(target=syslogger,
-                         args=(logger_queue, syslog, port, ident, msgexpand))
+logger_process = Process(target = syslogger,
+                         args = (loggerQueue, syslogServer, syslogPort,
+                         syslogIdent,msgexpand))
+
 logger_process.daemon = True
 logger_process.start()
 

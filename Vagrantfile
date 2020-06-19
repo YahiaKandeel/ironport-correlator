@@ -7,7 +7,12 @@
 Vagrant.configure("2") do |config|
   config.vm.box = "centos/7"
   config.vm.hostname = "ironport"
-  config.vm.network "public_network"
+  
+  # Network
+  config.vm.network "private_network", ip: "192.168.40.10"
+  # config.vm.network "public_network"
+  
+  # provider
   config.vm.provider "virtualbox" do |vb|
     vb.gui = false
     vb.name = "ironport"
@@ -16,7 +21,9 @@ Vagrant.configure("2") do |config|
   config.vm.provider "libvirt" do |lv|
     lv.cpus = 2
     lv.memory = "4069"
-  end
+  end  
+
+  # install script
   config.vm.provision "shell", path: "install.sh"
 end
 ################################################################################
