@@ -4,7 +4,12 @@ Correlate Cisco IronPort ESA messages into one JSON document.
 ## Why This Tool
 The motivation behind this tool is to ship IronPort's email syslog related messages to a SIEM solution in one syslog message.
 
+
+![HLD](/images/hld.png "High Level Design")
+
+
 IronPort Email Security Appliance works as MTA server which accepts emails from all other MTAs on the Internet. It is designed to detect and block a wide variety of email-borne threats, such as malware, spam, and phishing attempts.  When an email reaches IronPort it will be looped through multi-scanning filters/engine. Each engine will report back the status of the scanning result, is there malware in the email? is it from a trusted source? does it have a phishing URL ..etc?
+
 
 When IronPort is configured to send it's Syslog messages to a centralized log collector; each engine will send a one or more Syslog message per email. In the end, you will end up having many syslog messages all of the related to one email which make it very hard for the SIEM to do the correlation of different log-sources:
 * Dropped|Queued Messages
@@ -17,9 +22,13 @@ When IronPort is configured to send it's Syslog messages to a centralized log co
 * Reporting Logs
 * Scanning Logs
 * Safe/Block Lists Logs
-..........
+* ...etc. 
+
 
 This tool is used a hub between IronPort and a SIEM solution to correlate between the different Engines, Filters per Email.
+
+
+
 ```
 {'Action': 'notify-copy || queued for delivery',
  'Action_Desc': '',
@@ -49,16 +58,30 @@ This tool is used a hub between IronPort and a SIEM solution to correlate betwee
  'To': 'yahia.kandeel@xxxxx.com'}
 ```
 
-** Note: This application only supported on Python3
+
+## Application Configuration
+Application configs are based on Environment Variables, So you need to set them before starting the application.
+
+| Env Variable      | Description             | Default Value |
+| ----------------- | ----------------------- | ------------- |
+| ENV_SYSLOG_SERVER | SIEM Server IP Address  |               |
+| ENV_SYSLOG_PORT   | SIEM Server Port (UDP)  | 5144          |
+| ENV_SYSLOG_IDENT  | SysLog Message Prefix   | IronPort      |
+| ENV_REDIS_KEY     | Internal Redis Key      | ironport      |
+| ENV_TIMEOUT       | Time to wait to correlate all related events per message(in sec) | 30 |
+| ENV_MSG_EXPAND    | If true, foreach sender, one syslog message will be sent| True|
 
 ## Components
 * Logstash
+
 Logstash will listen for any incoming syslog message from IronPort, parse logs, then send it to the Redis Queue.
 
 * Redis Server
+
 Redis, contains all parsed IronPort messages as well as the parsed messaged by the Python Application.
 
 * Python Application (Correlator)
+
 Correlator is a multiprocessing Python3 App, that contains three processes:
 1. Correlator
    - correlate all messages and send them
@@ -78,12 +101,14 @@ Correlator is a multiprocessing Python3 App, that contains three processes:
 I'm going to cover the installation by using Dockers and bare-metal installation.
 For the bare-metal, I'm going to use CentOS7 as my base OS.
 
+
 ### Using CentOS7
 * Install JAVA SDK (For Logstash)
 ```bash
 sudo yum -y install http://rpms.remirepo.net/enterprise/remi-release-7.rpm
 sudo yum install -y wget vim firewalld net-tools gcc make openssl-devel
 ```
+
 
 * Logstash Installation and Configuration
 The existing pipeline will instruct to listen on ports 514/udp/tcp, parse then dump the log messages to redis.
@@ -107,31 +132,25 @@ sudo yum -y install python36-pip
 sudo pip3 install ipython redis
 ```
 
-* Running the app
-Basically, the app what do is to configure which Syslog server you wanna forward your logs to, then you can start your application
+* Application Configuration
+You need to export your envs before running the application.
+
 ``` bash
-export SYSLOG=<PlaceWithYourSyslogIP>
 python3 ./main.py
 ```
 
 * Finally IronPort configuration
 Lastly, we need to configure Ironport to send its logs to the newly created machine ;)
 
-* Note:
+** Note **
 you can automate the installation and configuration by using the install.sh script
 ```bash
 sudo ./install.sh
 ```
 
 ### Using Vagrant
-Currently, Vagrantfile using virtual-box as the default provider, what you need to do is to configure the SYSLOG environment variable, then execute the application
-``` bash
-export SYSLOG=<PlaceWithYourSyslogIP>
-python3 ./main.py
-```
+Edit envs.sh file to point the app to your SIEM, then edit Vagrantfile to configure the network parameters
 
-### Using Dockers
-Under development!
 ```bash
-docker-compose up
+vagrant up
 ```
