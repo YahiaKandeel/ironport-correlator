@@ -1,0 +1,37 @@
+version: "3"
+services:
+  correlator:
+    image: yahiakandeel/ironportcorrelator:latest
+    environment:
+      - ENV_SYSLOG_SERVER=192.168.40.44
+      - ENV_SYSLOG_PORT=514
+      - ENV_SYSLOG_IDENT=IronPort
+      - ENV_REDIS_SERVER=redis
+    volumes:
+      - "./logs:/var/log/ironport/"
+    depends_on:
+      - redis
+    networks:
+      - net
+  redis:
+    image: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis:/data
+    command: redis-server --appendonly yes
+    networks:
+      - net
+  logstash:
+    image: docker.elastic.co/logstash/logstash:6.8.10
+    ports:
+      - "5144:5144/udp"
+    volumes:
+      - ./logstash/docker:/pipeline
+    command: logstash -f /pipeline --path.logs /logs
+    networks:
+      - net
+    depends_on:
+      - redis
+networks:
+  net:
