@@ -21,9 +21,9 @@ rpm -ivh https://artifacts.elastic.co/downloads/logstash/logstash-7.8.0.rpm > /d
 # Config
 if [ -e /vagrant ]; then 
     # logstash config
-	cp /vagrant/logstash.conf /etc/logstash/conf.d/ironport.conf
+	cp /vagrant/logstash/ironport.conf /etc/logstash/conf.d/ironport.conf
 else
-    cp ./logstash.conf /etc/logstash/conf.d/ironport.conf 
+    cp ./logstash/ironport.conf /etc/logstash/conf.d/ironport.conf 
 fi
 # Start & Enable
 systemctl enable logstash --now

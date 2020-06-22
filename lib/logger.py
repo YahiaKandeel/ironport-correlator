@@ -22,16 +22,16 @@ keys = [
 
 
 # Syslog
-def syslog(server, port, ident):
+def syslog(siemContext):
     '''
         Return a syslogger instance
     '''
     # Create Handler
-    handler = SysLogHandler(address=(server, port),
+    handler = SysLogHandler(address=(siemContext["server"], siemContext["port"]),
                             facility=SysLogHandler.LOG_LOCAL5)
 
     # Configure Logger
-    logger = logging.getLogger(ident)
+    logger = logging.getLogger(siemContext["ident"])
     logger.setLevel(logging.INFO)
 
     # Configure Formater
@@ -73,13 +73,13 @@ def style(message, msgexpand):
     return result
 
 
-def syslogger(logger_queue, server, port, ident, msgexpand):
+def syslogger(logger_queue, siemContext, options):
     '''
         Logger Process
     '''
     print("\t[+]Starting Logger Process")
     # Logger
-    logger = syslog(server, port, ident)
+    logger = syslog(siemContext)
     while True:
         # Get Data from Logger Queue
         data = logger_queue.get()
@@ -87,7 +87,7 @@ def syslogger(logger_queue, server, port, ident, msgexpand):
         if data:
             [(mid, message)] = data.items()
             # Style It
-            messages = style(message, msgexpand)
+            messages = style(message, options["expand"])
             # Log
             for message in messages:
                 logger.info(message)

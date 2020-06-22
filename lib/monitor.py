@@ -7,12 +7,9 @@ import redis
 import time
 import json
 
-# redis
-pipe = redis.Redis()
-
 
 # Time our Keys
-def get_timeout_rmids(timeout):
+def get_timeout_rmids(pipe, timeout):
     '''
         Input: timout
         Operation: Loop through redis keys, then return the timed out ones.
@@ -30,7 +27,7 @@ def get_timeout_rmids(timeout):
 
 
 # POP rmid's data
-def lpop(rmid):
+def lpop(pipe, rmid):
     '''
         Return all data associated with a Key (rmid)
     '''
@@ -43,16 +40,19 @@ def lpop(rmid):
 
 
 # Monitor Process
-def monitor(logger_queue, timeout):
+def monitor(logger_queue, redisContext, options):
     print("\t[+]Starting Monitor Process")
+    
+    # redis
+    pipe = redis.Redis(host=redisContext["server"])
 
     while True:
         # Get Time out MIDs
-        rmids = get_timeout_rmids(timeout)
+        rmids = get_timeout_rmids(pipe, options["timeout"])
 
         # Get their data
         for rmid in rmids:
-            data = lpop(rmid)
+            data = lpop(pipe, rmid)
             # delete the expired rmid
             pipe.delete(rmid)
             print("Deleting", rmid)

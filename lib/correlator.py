@@ -8,11 +8,7 @@ import time
 from collections import OrderedDict
 
 
-# redis
-pipe = redis.Redis()
-
-
-def mid_with_epoch(mid):
+def mid_with_epoch(pipe, mid):
     '''
         Look for the mid:epoch at the redis ;)
             - if there is a match, return it
@@ -27,7 +23,7 @@ def mid_with_epoch(mid):
     return rmid
 
 
-def correlator(redis_key):
+def correlator(redisContext):
     '''
     A worker that read log message from redis server, then:
         1- Get mid,
@@ -35,17 +31,20 @@ def correlator(redis_key):
         3- Push the MID:EPOCH = {'key1':[match1, match2], 'key2':[match3]} to redis
     '''
     print("\t[+]Starting Parser Process")
+    
+    # redis
+    pipe = redis.Redis(host=redisContext["server"])
 
     while True:
         # Get log from redis
-        rkey, rawlog = pipe.blpop(redis_key, 0)
+        rkey, rawlog = pipe.blpop(redisContext["key"], 0)
 
         # Extract mid, type
         log = json.loads(rawlog)
         mid = log.get('MID')
 
         # get rmid
-        rmid = mid_with_epoch(mid)
+        rmid = mid_with_epoch(pipe, mid)
         del log['MID']
 
         for key, value in log.items():
